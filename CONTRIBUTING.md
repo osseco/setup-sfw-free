@@ -10,13 +10,14 @@ Conventions for commits, branches and sfw are in [AGENTS.md](AGENTS.md). This pa
 
 `pnpm-workspace.yaml` refuses package versions younger than 7 days and denies dependency build scripts.
 
-| Command              | Does                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------ |
-| `pnpm format`        | formats with Biome                                                                   |
-| `pnpm lint`          | lints with Biome                                                                     |
-| `pnpm test`          | runs the unit tests (`node --test`)                                                  |
-| `pnpm test:coverage` | the tests with the coverage thresholds CI uses                                       |
-| `sfw pnpm build`     | bundles `src/` into `dist/` with esbuild, and writes `dist/THIRD-PARTY-LICENSES.txt` |
+| Command                      | Does                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| `pnpm format`                | formats with Biome                                                                   |
+| `pnpm lint`                  | lints with Biome                                                                     |
+| `pnpm test`                  | runs the unit tests (`node --test`)                                                  |
+| `pnpm test:coverage`         | the tests with the coverage thresholds CI uses                                       |
+| `pnpm update-sfw-free X.Y.Z` | adopts a new sfw-free release on a new branch (see below)                            |
+| `sfw pnpm build`             | bundles `src/` into `dist/` with esbuild, and writes `dist/THIRD-PARTY-LICENSES.txt` |
 
 ## CI
 
@@ -54,10 +55,25 @@ A push to `main` that changes the action runs `release.yml`. When the version ch
 `sfw-free-update.yml` opens an issue `Update sfw-free to vX.Y.Z` when a release is at least 7 days old. A maintainer then:
 
 1. Reads the sfw-free release notes.
-2. Runs `node scripts/update-sfw-free.mjs X.Y.Z`. It refuses releases younger than 7 days, downloads every asset, and requires the local sha256 to equal the digest GitHub reports before it writes `sfw-free.json`.
-3. Runs `sfw pnpm build` and `pre-commit run --all-files`.
-4. Commits `feat(sfw): update sfw-free to X.Y.Z` and opens a pull request. The e2e jobs install and run the new binary on every platform.
-5. Merges, approves the release, and closes the issue.
+2. From a clean checkout, runs:
+
+   ```bash
+   pnpm update-sfw-free X.Y.Z
+   ```
+
+   The script:
+   - refuses releases younger than 7 days, drafts, prereleases, and versions `origin/main` already has;
+   - creates `feat/update_sfw_free_X.Y.Z` from `origin/main`;
+   - downloads every asset and requires the local sha256 to equal the digest GitHub reports;
+   - writes `sfw-free.json` and the version marker in `README.md`;
+   - runs `sfw pnpm install --frozen-lockfile`, `pnpm build` and `pnpm test`;
+   - stages `sfw-free.json`, `README.md` and `dist/`. It never commits or pushes.
+
+   `pnpm update-sfw-free X.Y.Z --dry-run` only checks and downloads: no git, no writes.
+3. Reviews the staged changes, commits them signed as `feat(sfw): update sfw-free to X.Y.Z`, pushes, and opens a pull request. The e2e jobs install and run the new binary on every platform.
+4. Merges, approves the release, and closes the issue.
+
+`README.md` holds the sfw-free version between `<!-- sfw-free-version -->` markers; a test fails when it differs from `sfw-free.json`. The exact `uses:` line (commit SHA and tag) is written into each release's notes by `release.yml`.
 
 ## Verifying a release
 

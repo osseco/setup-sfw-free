@@ -55,16 +55,17 @@ Tests use `node --test`, live in `test/`, and must not touch the network. Logic 
 ## Code map
 
 - `action.yml`: inputs, outputs, `dist/main.cjs` and `dist/post.cjs`.
-- `sfw-free.json`: the one sfw-free version this action installs, with the sha256 of every asset. Only `scripts/update-sfw-free.mjs` writes it.
+- `sfw-free.json`: the one sfw-free version this action installs, with the sha256 of every asset. Only `scripts/update-sfw-free.mjs` writes it, together with the version marker in `README.md`.
 - `src/index.js`, `src/post-index.js`: entry points; they only call `run()`.
 - `src/main.js`: `run()` resolves the asset, restores from cache or downloads, verifies, puts `sfw` on PATH.
 - `src/post.js`: `run()` writes the job summary from the sfw report.
 - `src/release.js`: validates the shape of `sfw-free.json`.
+- `src/readme.js`: reads and sets the sfw-free version between the `README.md` markers.
 - `src/platform.js`: platform, arch and libc to asset (`ASSET_NAMES`).
 - `src/download.js`: download with retries, sha256.
 - `src/summary.js`: report to HTML, every value escaped.
 - `scripts/build.mjs`: esbuild bundle into `dist/` (CJS, no sourcemaps).
-- `scripts/update-sfw-free.mjs`: maintainer tool that pins a release in `sfw-free.json`.
+- `scripts/update-sfw-free.mjs` (`pnpm update-sfw-free X.Y.Z`): maintainer tool that adopts a release on a new branch and stages the result. Agents may run it only when asked, and never commit what it stages.
 
 ## Security rules
 

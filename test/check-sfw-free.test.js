@@ -88,7 +88,8 @@ test('the issue lists the update steps', () => {
     new Date('2026-11-14T14:28:39Z'),
   )
   assert.match(body, /13 days ago/)
-  assert.match(body, /node scripts\/update-sfw-free\.mjs 1\.16\.0/)
+  assert.match(body, /pnpm update-sfw-free 1\.16\.0/)
+  assert.match(body, /feat\/update_sfw_free_1\.16\.0/)
   assert.match(body, /feat\(sfw\): update sfw-free to 1\.16\.0/)
   assert.match(body, /pins v1\.15\.6/)
 })

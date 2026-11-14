@@ -49,9 +49,8 @@ export function issueBody(release, current, now) {
   return `sfw-free [v${release.version}](${release.html_url}) was published ${release.published_at} (${ageDays} days ago). This action pins v${current}.
 
 - [ ] Read the [release notes](${release.html_url}).
-- [ ] \`node scripts/update-sfw-free.mjs ${release.version}\`
-- [ ] \`sfw pnpm build\` and \`pre-commit run --all-files\`
-- [ ] Commit \`feat(sfw): update sfw-free to ${release.version}\` and open a pull request; the e2e jobs must pass on every platform.
+- [ ] From a clean checkout: \`pnpm update-sfw-free ${release.version}\`. It creates \`feat/update_sfw_free_${release.version}\` and stages the changes.
+- [ ] Review the staged changes, commit them signed as \`feat(sfw): update sfw-free to ${release.version}\`, push, and open a pull request; the e2e jobs must pass on every platform.
 - [ ] Merge, approve the \`release\` environment, and close this issue.
 
 Opened by the weekly \`sfw-free-update\` workflow. See CONTRIBUTING.md, "Updating sfw-free".

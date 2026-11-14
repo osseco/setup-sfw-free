@@ -2,6 +2,8 @@
 
 A GitHub Action that installs [Socket Firewall Free](https://github.com/SocketDev/sfw-free) (`sfw`) and nothing else. Run your package manager through it (`sfw npm ci`, `sfw pnpm install`, `sfw pip install`, `sfw cargo fetch`) and it blocks malicious packages before they reach the runner.
 
+This version of the action installs sfw-free <!-- sfw-free-version -->1.15.6<!-- /sfw-free-version -->.
+
 - Each action version installs exactly one sfw-free version. Its sha256 for every platform is pinned in [`sfw-free.json`](sfw-free.json), and the binary is checked against it before it is used.
 - Downloads come only from the sfw-free GitHub releases.
 - The binary can be kept in your repository's Actions cache. A cached binary is checked against the pinned sha256 too.
@@ -21,11 +23,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: osseco/setup-sfw-free@<full commit sha> # v1.15.6-0.1.0
+      - uses: osseco/setup-sfw-free@<commit sha> # <release tag>
       - run: sfw npm ci
 ```
 
-Pin the action by full commit SHA with the version as a comment, as above. Dependabot and Renovate update both.
+Copy the exact `uses:` line, with the commit SHA and tag, from the notes of the [latest release](https://github.com/osseco/setup-sfw-free/releases/latest). Pin by full commit SHA with the version as a comment, as above; Dependabot and Renovate update both.
 
 ## Versions
 
@@ -71,7 +73,7 @@ Linux x64 and arm64 (glibc and musl), macOS x64 and arm64, Windows x64 and arm64
 container: node:24-alpine
 steps:
   - run: apk add --no-cache libstdc++ libgcc
-  - uses: osseco/setup-sfw-free@<full commit sha> # v1.15.6-0.1.0
+  - uses: osseco/setup-sfw-free@<commit sha> # <release tag>
 ```
 
 ## Limitations

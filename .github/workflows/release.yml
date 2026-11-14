@@ -103,11 +103,21 @@ jobs:
           NEXT_TAG: ${{ needs.version.outputs.next_tag }}
         run: |
           set -euo pipefail
+          sfw_free="$(node -p 'require("./sfw-free.json").version')"
+          # The exact line users copy; README.md points here. gh puts these
+          # notes above the generated ones.
+          fence="$(printf '\140\140\140')"
+          {
+            printf 'Installs sfw-free %s.\n\n' "$sfw_free"
+            printf '%syaml\n- uses: %s@%s # %s\n%s\n' "$fence" "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$NEXT_TAG" "$fence"
+          } > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
           # Attach every asset to a draft, then publish; publishing creates the
           # tag on this commit and, with immutable releases, locks tag and assets.
           gh release create "$NEXT_TAG" staged/* \
             --draft \
             --target "$GITHUB_SHA" \
             --title "$NEXT_TAG" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
             --generate-notes
           gh release edit "$NEXT_TAG" --draft=false --latest
