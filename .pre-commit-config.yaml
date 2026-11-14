@@ -8,6 +8,8 @@ repos:
         exclude: ^dist/
       - id: check-json
       - id: check-yaml
+        # pnpm 12 writes pnpm-lock.yaml as several YAML documents.
+        args: [--allow-multiple-documents]
       - id: check-merge-conflict
 
   # Tools are expected on PATH (see AGENTS.md).
@@ -33,9 +35,9 @@ repos:
         pass_filenames: false
       - id: zizmor
         name: zizmor
-        entry: zizmor --offline .github/workflows action.yml
+        entry: zizmor --offline .
         language: system
-        files: ^(\.github/workflows/|action\.yml$)
+        files: ^(\.github/(workflows/|dependabot\.yml$)|action\.yml$)
         pass_filenames: false
       - id: actionlint
         name: actionlint

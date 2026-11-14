@@ -1,0 +1,38 @@
+{
+  "version": "1.15.6",
+  "publishedAt": "2026-10-23T09:33:43Z",
+  "assets": {
+    "darwin-arm64": {
+      "name": "sfw-free-macos-arm64",
+      "sha256": "3d19f542409e4c0bd6181b5761d617e83c1ed506263c2e083e9e344e2fbdde21"
+    },
+    "darwin-x64": {
+      "name": "sfw-free-macos-x86_64",
+      "sha256": "7b113f8c5836a20bb1ba4fd5f3c7edcac94c2a1fa8de6f1d53e728eb695af5c7"
+    },
+    "linux-arm64": {
+      "name": "sfw-free-linux-arm64",
+      "sha256": "b4fb7e8626e3292a3c5daa2cfef3c1572997849279a6e6de090166dcc640eeba"
+    },
+    "linux-arm64-musl": {
+      "name": "sfw-free-musl-linux-arm64",
+      "sha256": "1be630452cfa50067593252581723728d288f4758c1a89bcf145e99c0205e78d"
+    },
+    "linux-x64": {
+      "name": "sfw-free-linux-x86_64",
+      "sha256": "b958d503eeb793a45864a5f0feb79fba8ccd78e4f57d1f9404f0de653396f1e2"
+    },
+    "linux-x64-musl": {
+      "name": "sfw-free-musl-linux-x86_64",
+      "sha256": "53ce0f90be2592239d2e5b135487324364805debee9d6120484756a2fc4d234b"
+    },
+    "win32-arm64": {
+      "name": "sfw-free-windows-arm64.exe",
+      "sha256": "75824fdd5a6b53c668be4089efd7111555406b7a96f6727802b4c3990abe4aa7"
+    },
+    "win32-x64": {
+      "name": "sfw-free-windows-x86_64.exe",
+      "sha256": "6eb6e989df3b8c4b66b3026bd7525e481fa9090063a51026632f99fc55f3e62d"
+    }
+  }
+}

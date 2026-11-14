@@ -1,0 +1,17 @@
+name: Setup Socket Firewall Free
+description: Install Socket Firewall Free (sfw), verified against checksums pinned in this action
+author: osseco
+
+branding:
+  icon: shield
+  color: green
+
+outputs:
+  version:
+    description: Installed sfw-free version, for example 1.15.6
+  path:
+    description: Absolute path to the sfw binary
+
+runs:
+  using: node24
+  main: dist/main.cjs

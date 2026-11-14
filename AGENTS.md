@@ -59,10 +59,12 @@ Tests use `node --test`, live in `test/`, and must not touch the network. Logic 
 - `src/index.js`, `src/post-index.js`: entry points; they only call `run()`.
 - `src/main.js`: `run()` resolves the asset, restores from cache or downloads, verifies, puts `sfw` on PATH.
 - `src/post.js`: `run()` writes the job summary from the sfw report.
-- `src/platform.js`: platform, arch and libc to asset.
+- `src/release.js`: validates the shape of `sfw-free.json`.
+- `src/platform.js`: platform, arch and libc to asset (`ASSET_NAMES`).
 - `src/download.js`: download with retries, sha256.
 - `src/summary.js`: report to HTML, every value escaped.
 - `scripts/build.mjs`: esbuild bundle into `dist/` (CJS, no sourcemaps).
+- `scripts/update-sfw-free.mjs`: maintainer tool that pins a release in `sfw-free.json`.
 
 ## Security rules
 
