@@ -50,13 +50,6 @@ export function fakeCore(inputs = {}) {
   return {
     calls,
     getInput,
-    // Same rules as @actions/core: YAML 1.2 core schema booleans only.
-    getBooleanInput: (name) => {
-      const value = getInput(name)
-      if (['true', 'True', 'TRUE'].includes(value)) return true
-      if (['false', 'False', 'FALSE'].includes(value)) return false
-      throw new TypeError(`Input does not meet YAML 1.2 "Core Schema"`)
-    },
     setOutput: (name, value) => {
       calls.outputs[name] = value
     },

@@ -224,6 +224,38 @@ test('cache: false neither restores nor saves', async (t) => {
   assert.deepEqual(cache.calls.saved, [])
 })
 
+test('cache: restore uses a verified hit', async (t) => {
+  const cache = fakeCache({ entries: { [cacheKey]: { sfw: 'sfw-binary' } } })
+  const { core, downloads } = await runWithCache(t, cache, {
+    inputs: { cache: 'restore' },
+    fetchResponses: [],
+  })
+  assert.equal(downloads.length, 0)
+  assert.deepEqual(cache.calls.saved, [])
+  assert.equal(core.calls.outputs['cache-hit'], 'true')
+})
+
+test('cache: restore downloads on a miss without saving', async (t) => {
+  const cache = fakeCache()
+  const { core, downloads } = await runWithCache(t, cache, {
+    inputs: { cache: 'restore' },
+  })
+  assert.equal(downloads.length, 1)
+  assert.deepEqual(cache.calls.restored, [cacheKey])
+  assert.deepEqual(cache.calls.saved, [])
+  assert.equal(core.calls.outputs['cache-hit'], 'false')
+  assert.match(core.calls.info.join('\n'), /not saving/)
+})
+
+test('capitalised booleans still work for cache', async (t) => {
+  const cache = fakeCache()
+  await runWithCache(t, cache, { inputs: { cache: 'FALSE' } })
+  assert.deepEqual(cache.calls.restored, [])
+
+  await runWithCache(t, cache, { inputs: { cache: 'True' } })
+  assert.equal(cache.calls.saved.length, 1)
+})
+
 test('an unavailable cache service is skipped', async (t) => {
   const cache = fakeCache({ available: false })
   const { core, downloads } = await runWithCache(t, cache)
@@ -232,10 +264,13 @@ test('an unavailable cache service is skipped', async (t) => {
   assert.match(core.calls.info.join('\n'), /not available/)
 })
 
-test('rejects a cache input that is not a boolean', async (t) => {
+test('rejects an unknown cache input before downloading', async (t) => {
   await assert.rejects(
-    runWithCache(t, fakeCache(), { inputs: { cache: 'yes please' } }),
-    TypeError,
+    runWithCache(t, fakeCache(), {
+      inputs: { cache: 'yes please' },
+      fetchResponses: [],
+    }),
+    /cache must be one of true, restore, false/,
   )
 })
 

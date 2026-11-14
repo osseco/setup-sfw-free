@@ -66752,9 +66752,9 @@ function restoreCache(paths_1, primaryKey_1, restoreKeys_1, options_1) {
     const cacheServiceVersion = getCacheServiceVersion();
     debug(`Cache service version: ${cacheServiceVersion}`);
     checkPaths(paths);
-    const cacheMode = getCacheMode();
-    if (!isCacheReadable(cacheMode)) {
-      info(`Cache restore skipped: the effective cache-mode '${cacheMode}' does not permit reads.`);
+    const cacheMode2 = getCacheMode();
+    if (!isCacheReadable(cacheMode2)) {
+      info(`Cache restore skipped: the effective cache-mode '${cacheMode2}' does not permit reads.`);
       debug(`Skipped restore for paths [${paths.join(", ")}] with primary key '${primaryKey}'.`);
       return void 0;
     }
@@ -66923,9 +66923,9 @@ function saveCache2(paths_1, key_1, options_1) {
     debug(`Cache service version: ${cacheServiceVersion}`);
     checkPaths(paths);
     checkKey(key);
-    const cacheMode = getCacheMode();
-    if (!isCacheWritable(cacheMode)) {
-      info(`Cache save skipped: the effective cache-mode '${cacheMode}' does not permit writes.`);
+    const cacheMode2 = getCacheMode();
+    if (!isCacheWritable(cacheMode2)) {
+      info(`Cache save skipped: the effective cache-mode '${cacheMode2}' does not permit writes.`);
       debug(`Skipped save for paths [${paths.join(", ")}] with key '${key}'.`);
       return -1;
     }
@@ -67299,7 +67299,7 @@ async function run({
   release: pinnedRelease = sfw_free_default,
   delays
 } = {}) {
-  const useCache = core.getBooleanInput("cache");
+  const mode = cacheMode(core);
   const summaryMode = jobSummaryMode(core);
   const release = validateRelease(pinnedRelease);
   const runnerTemp = env.RUNNER_TEMP;
@@ -67312,6 +67312,7 @@ async function run({
   const binary = (0, import_node_path.join)(installDir, binaryName(host.platform));
   const cacheKey = `setup-sfw-free-${release.version}-${key}-${asset.sha256}`;
   await emptyDir(installDir);
+  const useCache = mode !== "false";
   const cacheEnabled = useCache && cache.isFeatureAvailable();
   if (useCache && !cacheEnabled) {
     core.info("Actions cache is not available on this runner");
@@ -67322,8 +67323,10 @@ async function run({
   }
   if (!cacheHit) {
     await download(core, fetch, delays, release.version, asset, binary);
-    if (cacheEnabled) {
+    if (cacheEnabled && mode === "true") {
       await save(core, cache, installDir, cacheKey);
+    } else if (cacheEnabled) {
+      core.info("cache is restore; not saving sfw-free to cache");
     }
   }
   await (0, import_promises4.chmod)(binary, 493);
@@ -67338,6 +67341,20 @@ async function run({
     core.setOutput("report-path", reportPath);
   }
   core.info(`sfw-free ${release.version} installed at ${binary}`);
+}
+var CACHE_MODES = ["true", "restore", "false"];
+function cacheMode(core) {
+  const input = core.getInput("cache") || "true";
+  const value = ["True", "TRUE"].includes(input) ? "true" : ["False", "FALSE"].includes(input) ? "false" : input;
+  if (!CACHE_MODES.includes(value)) {
+    throw new Error(
+      `cache must be one of ${CACHE_MODES.join(", ")}; got ${JSON.stringify(input)}`
+    );
+  }
+  return (
+    /** @type {'true' | 'restore' | 'false'} */
+    value
+  );
 }
 async function restore(core, cache, installDir, binary, cacheKey, asset) {
   try {
