@@ -109,7 +109,9 @@ jobs:
           expected="$(node -p 'require("./sfw-free.json").version')"
           test "$VERSION" = "$expected"
           test -f "$SFW_PATH"
-          case "$SFW_PATH" in */"$expected"/"$KEY"/sfw|*/"$expected"/"$KEY"/sfw.exe) ;; *) echo "unexpected path $SFW_PATH"; exit 1 ;; esac
+          # Windows paths use backslashes; compare with forward slashes.
+          sfw_path="${SFW_PATH//\\//}"
+          case "$sfw_path" in */"$expected"/"$KEY"/sfw|*/"$expected"/"$KEY"/sfw.exe) ;; *) echo "unexpected path $SFW_PATH"; exit 1 ;; esac
           test "$REPORT_PATH" = "$SFW_JSON_REPORT_PATH"
           echo "cache-hit: $CACHE_HIT"
       - name: Run a package manager through sfw
