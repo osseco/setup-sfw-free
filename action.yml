@@ -11,7 +11,9 @@ inputs:
     description: >-
       Keep the sfw binary in this repository's Actions cache, so later jobs
       don't download it from GitHub releases. A restored binary is verified
-      against the pinned sha256 before use. true or false.
+      against the pinned sha256 before use. true (restore, and save after a
+      download), restore (restore only, never save) or false (always
+      download).
     required: false
     default: "true"
   job-summary:

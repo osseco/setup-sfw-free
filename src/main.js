@@ -32,7 +32,7 @@ export async function run({
   release: pinnedRelease = pinned,
   delays,
 } = {}) {
-  const useCache = core.getBooleanInput('cache')
+  const mode = cacheMode(core)
   const summaryMode = jobSummaryMode(core)
   const release = validateRelease(pinnedRelease)
   const runnerTemp = env.RUNNER_TEMP
@@ -50,6 +50,7 @@ export async function run({
 
   await emptyDir(installDir)
 
+  const useCache = mode !== 'false'
   const cacheEnabled = useCache && cache.isFeatureAvailable()
   if (useCache && !cacheEnabled) {
     core.info('Actions cache is not available on this runner')
@@ -62,8 +63,10 @@ export async function run({
 
   if (!cacheHit) {
     await download(core, fetch, delays, release.version, asset, binary)
-    if (cacheEnabled) {
+    if (cacheEnabled && mode === 'true') {
       await save(core, cache, installDir, cacheKey)
+    } else if (cacheEnabled) {
+      core.info('cache is restore; not saving sfw-free to cache')
     }
   }
 
@@ -83,6 +86,30 @@ export async function run({
     core.setOutput('report-path', reportPath)
   }
   core.info(`sfw-free ${release.version} installed at ${binary}`)
+}
+
+const CACHE_MODES = ['true', 'restore', 'false']
+
+/**
+ * Read the cache input: true restores and saves, restore only restores,
+ * false does neither. The capitalised booleans that getBooleanInput accepted
+ * keep working.
+ *
+ * @returns {'true' | 'restore' | 'false'}
+ */
+export function cacheMode(core) {
+  const input = core.getInput('cache') || 'true'
+  const value = ['True', 'TRUE'].includes(input)
+    ? 'true'
+    : ['False', 'FALSE'].includes(input)
+      ? 'false'
+      : input
+  if (!CACHE_MODES.includes(value)) {
+    throw new Error(
+      `cache must be one of ${CACHE_MODES.join(', ')}; got ${JSON.stringify(input)}`,
+    )
+  }
+  return /** @type {'true' | 'restore' | 'false'} */ (value)
 }
 
 /**

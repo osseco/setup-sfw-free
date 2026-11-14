@@ -39,12 +39,20 @@ New sfw-free releases are adopted by a maintainer once they are at least 7 days 
 
 All inputs are optional.
 
-| Input         | Default  | Description                                                                                                                                                                          |
-| ------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `cache`       | `true`   | Keep the sfw binary in the repository's Actions cache, so later jobs don't download it. `true` or `false`.                                                                           |
-| `job-summary` | `errors` | `errors`: summary only when sfw blocked a package or couldn't parse a request. `all`: a summary also when nothing was blocked. `none`: no summary, and sfw isn't asked for a report. |
+| Input         | Default  | Description                                                                                                                                                                            |
+| ------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cache`       | `true`   | Keep the sfw binary in the repository's Actions cache, so later jobs don't download it. `true`: restore, and save after a download. `restore`: restore only. `false`: always download. |
+| `job-summary` | `errors` | `errors`: summary only when sfw blocked a package or couldn't parse a request. `all`: a summary also when nothing was blocked. `none`: no summary, and sfw isn't asked for a report.   |
 
 Any other value fails the step.
+
+To save the cache only on `main`, and let branches and pull requests restore it:
+
+```yaml
+- uses: osseco/setup-sfw-free@<commit sha> # <release tag>
+  with:
+    cache: ${{ github.ref == 'refs/heads/main' && 'true' || 'restore' }}
+```
 
 ## Outputs
 
@@ -80,7 +88,7 @@ steps:
 
 - **Prefix commands with `sfw`.** The action doesn't install shims, so a plain `npm install` is not protected.
 - **The summary shows the last `sfw` call.** sfw rewrites its report on every run. A block fails its step, and later steps don't run, so the block is normally what you see. With `continue-on-error` a later `sfw` call can replace it.
-- **The cache is per repository and branch scope**, like any Actions cache. A restored binary that doesn't match the pinned sha256 is discarded with a warning and downloaded again.
+- **The cache is per repository and branch scope**, like any Actions cache. Branches and pull requests can restore entries saved on the default branch, which is what `cache: restore` relies on. A restored binary that doesn't match the pinned sha256 is discarded with a warning and downloaded again.
 
 ## Security
 
