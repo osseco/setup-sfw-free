@@ -41,7 +41,13 @@ repos:
         pass_filenames: false
       - id: actionlint
         name: actionlint
-        entry: actionlint
+        entry: actionlint -config-file .github/actionlint.yaml
         language: system
-        files: ^\.github/workflows/
+        files: ^\.github/(workflows/|actionlint\.yaml$)
+        pass_filenames: false
+      - id: version-rules
+        name: version rules self-check
+        entry: bash .github/calculate-version.sh --self-check
+        language: system
+        files: ^\.github/calculate-version\.sh$
         pass_filenames: false

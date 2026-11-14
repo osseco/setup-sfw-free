@@ -1,0 +1,171 @@
+name: Check
+
+# Everything a change must pass. Called by pr.yml and release.yml.
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  test:
+    name: Lint, test and dist
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      # This commit's own action provides sfw. No cache: dist/ is released.
+      - uses: $/
+        with:
+          cache: false
+          job-summary: errors
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - name: Install dependencies
+        run: sfw pnpm install --frozen-lockfile
+      - name: Format
+        run: pnpm format:check
+      - name: Lint
+        run: pnpm lint
+      - name: Test with coverage
+        run: pnpm test:coverage
+      - name: Production dependency licenses
+        run: |
+          set -euo pipefail
+          pnpm licenses list --prod --json | node .github/scripts/check-licenses.mjs
+      - name: Version rules
+        run: bash .github/calculate-version.sh --self-check
+      - name: Rebuild dist/
+        run: pnpm build
+      - name: Compare dist/
+        id: diff
+        run: |
+          set -euo pipefail
+          if ! git diff --exit-code --stat -- dist/; then
+            echo "::error::dist/ differs from a fresh build. Run 'sfw pnpm build' and commit dist/. The expected dist/ is attached to this run."
+            exit 1
+          fi
+          if [ -n "$(git status --porcelain -- dist/)" ]; then
+            git status --porcelain -- dist/
+            echo "::error::dist/ has files that are not committed."
+            exit 1
+          fi
+      - name: Upload expected dist/
+        if: failure() && steps.diff.outcome == 'failure'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+
+  e2e:
+    name: Action on ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x64, os: ubuntu-latest, key: linux-x64 }
+          - { name: linux-arm64, os: ubuntu-24.04-arm, key: linux-arm64 }
+          - { name: macos-arm64, os: macos-latest, key: darwin-arm64 }
+          - { name: windows-x64, os: windows-latest, key: win32-x64 }
+          - { name: windows-arm64, os: windows-11-arm, key: win32-arm64 }
+          - name: linux-x64-musl
+            os: ubuntu-latest
+            container: node:24-alpine
+            key: linux-x64-musl
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # node:24-alpine has neither bash nor the C++ runtime sfw links against.
+      - name: Prepare Alpine
+        if: matrix.container
+        shell: sh
+        run: apk add --no-cache bash libstdc++ libgcc
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/
+        id: sfw
+        with:
+          job-summary: all
+      - name: Check outputs
+        env:
+          VERSION: ${{ steps.sfw.outputs.version }}
+          SFW_PATH: ${{ steps.sfw.outputs.path }}
+          CACHE_HIT: ${{ steps.sfw.outputs.cache-hit }}
+          REPORT_PATH: ${{ steps.sfw.outputs.report-path }}
+          KEY: ${{ matrix.key }}
+        run: |
+          set -euo pipefail
+          expected="$(node -p 'require("./sfw-free.json").version')"
+          test "$VERSION" = "$expected"
+          test -f "$SFW_PATH"
+          case "$SFW_PATH" in */"$expected"/"$KEY"/sfw|*/"$expected"/"$KEY"/sfw.exe) ;; *) echo "unexpected path $SFW_PATH"; exit 1 ;; esac
+          test "$REPORT_PATH" = "$SFW_JSON_REPORT_PATH"
+          echo "cache-hit: $CACHE_HIT"
+      - name: Run a package manager through sfw
+        run: |
+          set -euo pipefail
+          sfw --help
+          sfw npm view lodash version
+      - name: sfw wrote its report
+        run: test -f "$SFW_JSON_REPORT_PATH"
+
+  e2e-cache:
+    name: Action restores from cache
+    needs: e2e
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/
+        id: sfw
+      - name: Expect a cache hit
+        env:
+          CACHE_HIT: ${{ steps.sfw.outputs.cache-hit }}
+        run: test "$CACHE_HIT" = "true"
+      - run: sfw npm view lodash version
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: low
+
+  codeql:
+    uses: $/.github/workflows/codeql.yml
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+      packages: read
+
+  zizmor:
+    uses: $/.github/workflows/zizmor.yml
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+
+  actionlint:
+    uses: $/.github/workflows/actionlint.yml
+    permissions:
+      security-events: write
+      contents: read
+      actions: read

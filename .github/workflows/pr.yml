@@ -1,0 +1,49 @@
+name: PR
+
+on:
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: pr-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  version:
+    uses: $/.github/workflows/version.yml
+    permissions:
+      contents: read
+
+  check:
+    name: "Check (would release ${{ needs.version.outputs.next_tag }})"
+    needs: version
+    uses: $/.github/workflows/check.yml
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+      packages: read
+
+  # Always runs, so a failure shows as a failed check and not a skipped one.
+  # This is the single required status check for main.
+  merge-gate:
+    name: Merge gate
+    needs: [version, check]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Ok to merge
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          set -euo pipefail
+          echo "results: $RESULTS"
+          case " $RESULTS " in
+            *" failure "* | *" cancelled "* | *" skipped "*)
+              echo "a required job failed, was cancelled or was skipped" >&2
+              exit 1
+              ;;
+          esac
+          echo "OK to merge"

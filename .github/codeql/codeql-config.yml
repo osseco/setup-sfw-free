@@ -1,0 +1,5 @@
+name: setup-sfw-free CodeQL configuration
+
+paths-ignore:
+  - dist
+  - node_modules
