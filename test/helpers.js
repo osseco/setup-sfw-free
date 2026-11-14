@@ -36,8 +36,16 @@ export function fakeFetch(...responses) {
  * action.yml defaults.
  */
 export function fakeCore(inputs = {}) {
-  const calls = { outputs: {}, paths: [], info: [], warning: [] }
-  const values = { cache: 'true', ...inputs }
+  const calls = {
+    outputs: {},
+    paths: [],
+    env: {},
+    state: {},
+    info: [],
+    warning: [],
+    summary: [],
+  }
+  const values = { cache: 'true', 'job-summary': 'errors', ...inputs }
   const getInput = (name) => values[name] ?? ''
   return {
     calls,
@@ -53,6 +61,20 @@ export function fakeCore(inputs = {}) {
       calls.outputs[name] = value
     },
     addPath: (path) => calls.paths.push(path),
+    exportVariable: (name, value) => {
+      calls.env[name] = value
+    },
+    saveState: (name, value) => {
+      calls.state[name] = value
+    },
+    getState: (name) => calls.state[name] ?? '',
+    summary: {
+      addRaw(html) {
+        calls.summary.push(html)
+        return this
+      },
+      write: async () => {},
+    },
     info: (message) => calls.info.push(message),
     warning: (message) => calls.warning.push(message),
     debug: () => {},

@@ -25013,6 +25013,7 @@ function getIDToken(aud) {
 }
 
 // src/main.js
+var import_node_crypto5 = require("node:crypto");
 var import_promises4 = require("node:fs/promises");
 var import_node_path = require("node:path");
 
@@ -67272,6 +67273,22 @@ function validateRelease(release) {
   );
 }
 
+// src/summary.js
+var REPORT_STATE = "report-path";
+var JOB_SUMMARY_MODES = ["all", "errors", "none"];
+function jobSummaryMode(core) {
+  const value = core.getInput("job-summary") || "errors";
+  if (!JOB_SUMMARY_MODES.includes(value)) {
+    throw new Error(
+      `job-summary must be one of ${JOB_SUMMARY_MODES.join(", ")}; got ${JSON.stringify(value)}`
+    );
+  }
+  return (
+    /** @type {'all' | 'errors' | 'none'} */
+    value
+  );
+}
+
 // src/main.js
 async function run({
   core = core_exports,
@@ -67283,6 +67300,7 @@ async function run({
   delays
 } = {}) {
   const useCache = core.getBooleanInput("cache");
+  const summaryMode = jobSummaryMode(core);
   const release = validateRelease(pinnedRelease);
   const runnerTemp = env.RUNNER_TEMP;
   if (!runnerTemp) {
@@ -67313,6 +67331,12 @@ async function run({
   core.setOutput("version", release.version);
   core.setOutput("path", binary);
   core.setOutput("cache-hit", String(cacheHit));
+  if (summaryMode !== "none") {
+    const reportPath = (0, import_node_path.join)(runnerTemp, `sfw-report-${(0, import_node_crypto5.randomUUID)()}.json`);
+    core.exportVariable("SFW_JSON_REPORT_PATH", reportPath);
+    core.saveState(REPORT_STATE, reportPath);
+    core.setOutput("report-path", reportPath);
+  }
   core.info(`sfw-free ${release.version} installed at ${binary}`);
 }
 async function restore(core, cache, installDir, binary, cacheKey, asset) {

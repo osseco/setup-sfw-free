@@ -36,11 +36,17 @@ test('downloads, verifies and puts sfw on PATH', async (t) => {
   assert.equal(await readFile(binary, 'utf8'), 'sfw-binary')
   assert.deepEqual(await readdir(dir), ['sfw'])
   assert.deepEqual(core.calls.paths, [dir])
+  const report = core.calls.outputs['report-path']
+  assert.match(report, /sfw-report-[0-9a-f-]{36}\.json$/)
+  assert.equal(report.startsWith(temp), true)
   assert.deepEqual(core.calls.outputs, {
     version: '1.2.3',
     path: binary,
     'cache-hit': 'false',
+    'report-path': report,
   })
+  assert.deepEqual(core.calls.env, { SFW_JSON_REPORT_PATH: report })
+  assert.deepEqual(core.calls.state, { 'report-path': report })
   if (process.platform !== 'win32') {
     assert.equal((await stat(binary)).mode & 0o777, 0o755)
   }
@@ -230,5 +236,24 @@ test('rejects a cache input that is not a boolean', async (t) => {
   await assert.rejects(
     runWithCache(t, fakeCache(), { inputs: { cache: 'yes please' } }),
     TypeError,
+  )
+})
+
+test('job-summary: none requests no report', async (t) => {
+  const { core } = await runWithCache(t, noCache, {
+    inputs: { 'job-summary': 'none' },
+  })
+  assert.deepEqual(core.calls.env, {})
+  assert.deepEqual(core.calls.state, {})
+  assert.equal(core.calls.outputs['report-path'], undefined)
+})
+
+test('rejects an unknown job-summary before downloading', async (t) => {
+  await assert.rejects(
+    runWithCache(t, noCache, {
+      inputs: { 'job-summary': 'everything' },
+      fetchResponses: [],
+    }),
+    /job-summary must be one of all, errors, none/,
   )
 })

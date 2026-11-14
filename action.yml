@@ -13,7 +13,14 @@ inputs:
       don't download it from GitHub releases. A restored binary is verified
       against the pinned sha256 before use. true or false.
     required: false
-    default: 'true'
+    default: "true"
+  job-summary:
+    description: >-
+      What the post step writes to the job summary from the sfw report: all
+      (also when nothing was blocked), errors (only blocked packages and
+      unparsable requests), or none (no report is requested from sfw).
+    required: false
+    default: errors
 
 outputs:
   version:
@@ -22,7 +29,12 @@ outputs:
     description: Absolute path to the sfw binary
   cache-hit:
     description: true when the binary came from the Actions cache, otherwise false
+  report-path:
+    description: >-
+      Path of the JSON report sfw writes (SFW_JSON_REPORT_PATH); empty when
+      job-summary is none
 
 runs:
   using: node24
   main: dist/main.cjs
+  post: dist/post.cjs

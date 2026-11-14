@@ -4,7 +4,7 @@
 import { build } from 'esbuild'
 
 await build({
-  entryPoints: { main: 'src/index.js' },
+  entryPoints: { main: 'src/index.js', post: 'src/post-index.js' },
   outdir: 'dist',
   outExtension: { '.js': '.cjs' },
   bundle: true,

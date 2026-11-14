@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { chmod, mkdir, rename, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import * as actionsCache from '@actions/cache'
@@ -6,6 +7,7 @@ import pinned from '../sfw-free.json' with { type: 'json' }
 import { assetUrl, downloadFile, sha256File } from './download.js'
 import { binaryName, isMusl, platformKey } from './platform.js'
 import { validateRelease } from './release.js'
+import { jobSummaryMode, REPORT_STATE } from './summary.js'
 
 /**
  * Install the pinned sfw-free for this runner and put it on PATH.
@@ -31,6 +33,7 @@ export async function run({
   delays,
 } = {}) {
   const useCache = core.getBooleanInput('cache')
+  const summaryMode = jobSummaryMode(core)
   const release = validateRelease(pinnedRelease)
   const runnerTemp = env.RUNNER_TEMP
   if (!runnerTemp) {
@@ -70,6 +73,15 @@ export async function run({
   core.setOutput('version', release.version)
   core.setOutput('path', binary)
   core.setOutput('cache-hit', String(cacheHit))
+
+  if (summaryMode !== 'none') {
+    // sfw writes what it blocked here; the post step turns it into the job
+    // summary.
+    const reportPath = join(runnerTemp, `sfw-report-${randomUUID()}.json`)
+    core.exportVariable('SFW_JSON_REPORT_PATH', reportPath)
+    core.saveState(REPORT_STATE, reportPath)
+    core.setOutput('report-path', reportPath)
+  }
   core.info(`sfw-free ${release.version} installed at ${binary}`)
 }
 
