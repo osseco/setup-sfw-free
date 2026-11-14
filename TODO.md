@@ -22,7 +22,7 @@ Needed before the workflows work as intended:
 
 ## Open decisions
 
-- [ ] License for this repository (`README.md` links to `LICENSE`, which doesn't exist yet). sfw-free is under its own license; this action only downloads it at run time.
+- [x] License for this repository: MIT, `Copyright (c) 2026 osseco contributors`. Bundled dependency licenses are in `dist/THIRD-PARTY-LICENSES.txt`.
 - [ ] Publish to the GitHub Marketplace (`action.yml` has branding).
 
 ## First release

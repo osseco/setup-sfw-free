@@ -86,4 +86,6 @@ See [SECURITY.md](SECURITY.md) for how to report a vulnerability, how this actio
 
 ## License
 
-sfw-free is provided by Socket under [its own license](https://github.com/SocketDev/sfw-free#license). This action doesn't redistribute it; it downloads the binary from Socket's releases at run time. The license of this action: see [LICENSE](LICENSE).
+This action is [MIT licensed](LICENSE). The dependencies bundled into `dist/` keep their own licenses; their texts are in [`dist/THIRD-PARTY-LICENSES.txt`](dist/THIRD-PARTY-LICENSES.txt).
+
+sfw-free is provided by Socket under [its own license](https://github.com/SocketDev/sfw-free#license). This action doesn't redistribute it; it downloads the binary from Socket's releases at run time.

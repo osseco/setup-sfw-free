@@ -86,10 +86,10 @@ jobs:
           fi
           mkdir -p staged
           cp action.yml sfw-free.json staged/
-          cp dist/main.cjs dist/post.cjs staged/
+          cp dist/main.cjs dist/post.cjs dist/THIRD-PARTY-LICENSES.txt LICENSE staged/
           (
             cd staged
-            sha256sum action.yml sfw-free.json main.cjs post.cjs > SHA256SUMS
+            sha256sum action.yml sfw-free.json main.cjs post.cjs THIRD-PARTY-LICENSES.txt LICENSE > SHA256SUMS
             cat SHA256SUMS
           )
       # Provenance says this workflow published these files from this commit.

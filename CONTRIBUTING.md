@@ -10,13 +10,13 @@ Conventions for commits, branches and sfw are in [AGENTS.md](AGENTS.md). This pa
 
 `pnpm-workspace.yaml` refuses package versions younger than 7 days and denies dependency build scripts.
 
-| Command              | Does                                           |
-| -------------------- | ---------------------------------------------- |
-| `pnpm format`        | formats with Biome                             |
-| `pnpm lint`          | lints with Biome                               |
-| `pnpm test`          | runs the unit tests (`node --test`)            |
-| `pnpm test:coverage` | the tests with the coverage thresholds CI uses |
-| `sfw pnpm build`     | bundles `src/` into `dist/` with esbuild       |
+| Command              | Does                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| `pnpm format`        | formats with Biome                                                                   |
+| `pnpm lint`          | lints with Biome                                                                     |
+| `pnpm test`          | runs the unit tests (`node --test`)                                                  |
+| `pnpm test:coverage` | the tests with the coverage thresholds CI uses                                       |
+| `sfw pnpm build`     | bundles `src/` into `dist/` with esbuild, and writes `dist/THIRD-PARTY-LICENSES.txt` |
 
 ## CI
 
@@ -45,7 +45,7 @@ The separator is `-`, not `+`: Dependabot can't parse `+`, so users pinned to a 
 
 A push to `main` that changes the action runs `release.yml`. When the version changed, the `publish` job (environment `release`):
 
-1. Writes `SHA256SUMS` for `action.yml`, `sfw-free.json` and `dist/*`.
+1. Writes `SHA256SUMS` for `action.yml`, `sfw-free.json`, `LICENSE` and `dist/*` (the bundles and `THIRD-PARTY-LICENSES.txt`).
 2. Attests build provenance for them.
 3. Creates a draft GitHub Release for the commit with those files, then publishes it. Releases are immutable, so a broken release is fixed by the next version.
 

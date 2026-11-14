@@ -48,7 +48,7 @@ Only the latest release gets fixes. Releases are immutable, so a fix always ship
 
 - Releases run from `main` only, in the protected `release` environment with required reviewers.
 - Releases are immutable: a published tag and its assets can't be changed.
-- Each release carries `SHA256SUMS` for `action.yml`, `sfw-free.json`, `main.cjs` and `post.cjs`, with a build provenance attestation.
+- Each release carries `SHA256SUMS` for `action.yml`, `sfw-free.json`, `main.cjs`, `post.cjs`, `THIRD-PARTY-LICENSES.txt` and `LICENSE`, with a build provenance attestation.
 - Use the action by full commit SHA.
 
 ## The action itself
