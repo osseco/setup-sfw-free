@@ -101,7 +101,7 @@ test('report values cannot inject HTML', () => {
     },
     'all',
   )
-  assert.doesNotMatch(html, /<script>|<img|<b>/)
+  assert.doesNotMatch(html, /<(script|img|b)\b/i)
   assert.match(html, /&lt;script&gt;/)
   assert.match(html, /Requests sfw could not parse \(1\)/)
 })
