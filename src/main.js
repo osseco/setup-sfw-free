@@ -1,8 +1,9 @@
 import { chmod, mkdir, rename, rm } from 'node:fs/promises'
 import { join } from 'node:path'
+import * as actionsCache from '@actions/cache'
 import * as actionsCore from '@actions/core'
 import pinned from '../sfw-free.json' with { type: 'json' }
-import { assetUrl, downloadFile } from './download.js'
+import { assetUrl, downloadFile, sha256File } from './download.js'
 import { binaryName, isMusl, platformKey } from './platform.js'
 import { validateRelease } from './release.js'
 
@@ -13,6 +14,7 @@ import { validateRelease } from './release.js'
  *
  * @param {object} [deps]
  * @param {typeof actionsCore} [deps.core]
+ * @param {Pick<typeof actionsCache, 'isFeatureAvailable' | 'restoreCache' | 'saveCache'>} [deps.cache]
  * @param {typeof fetch} [deps.fetch]
  * @param {NodeJS.ProcessEnv} [deps.env]
  * @param {{ platform: string, arch: string, musl: boolean }} [deps.host]
@@ -21,12 +23,14 @@ import { validateRelease } from './release.js'
  */
 export async function run({
   core = actionsCore,
+  cache = actionsCache,
   fetch = globalThis.fetch,
   env = process.env,
   host = currentHost(),
   release: pinnedRelease = pinned,
   delays,
 } = {}) {
+  const useCache = core.getBooleanInput('cache')
   const release = validateRelease(pinnedRelease)
   const runnerTemp = env.RUNNER_TEMP
   if (!runnerTemp) {
@@ -37,14 +41,91 @@ export async function run({
   const asset = release.assets[key]
   const installDir = join(runnerTemp, 'setup-sfw-free', release.version, key)
   const binary = join(installDir, binaryName(host.platform))
+  // The full hash is part of the key: a different binary is a different
+  // entry, and restoreCache's prefix matching can't pick a longer key.
+  const cacheKey = `setup-sfw-free-${release.version}-${key}-${asset.sha256}`
 
-  await rm(installDir, { recursive: true, force: true })
-  await mkdir(installDir, { recursive: true })
+  await emptyDir(installDir)
 
-  const url = assetUrl(release.version, asset.name)
+  const cacheEnabled = useCache && cache.isFeatureAvailable()
+  if (useCache && !cacheEnabled) {
+    core.info('Actions cache is not available on this runner')
+  }
+
+  let cacheHit = false
+  if (cacheEnabled) {
+    cacheHit = await restore(core, cache, installDir, binary, cacheKey, asset)
+  }
+
+  if (!cacheHit) {
+    await download(core, fetch, delays, release.version, asset, binary)
+    if (cacheEnabled) {
+      await save(core, cache, installDir, cacheKey)
+    }
+  }
+
+  await chmod(binary, 0o755)
+  core.addPath(installDir)
+
+  core.setOutput('version', release.version)
+  core.setOutput('path', binary)
+  core.setOutput('cache-hit', String(cacheHit))
+  core.info(`sfw-free ${release.version} installed at ${binary}`)
+}
+
+/**
+ * Restore the binary from the Actions cache. Any workflow on the default
+ * branch can write cache entries, so a restored binary is trusted only after
+ * it matches the pinned sha256. Every failure is a miss, never an error.
+ *
+ * @returns {Promise<boolean>} whether a verified binary was restored
+ */
+async function restore(core, cache, installDir, binary, cacheKey, asset) {
+  try {
+    const matched = await cache.restoreCache([installDir], cacheKey)
+    if (matched === undefined) {
+      core.info('No cached sfw-free; downloading')
+      return false
+    }
+    if (matched !== cacheKey) {
+      core.warning(`Ignoring cache entry ${matched}; expected ${cacheKey}`)
+      await emptyDir(installDir)
+      return false
+    }
+    const actual = await sha256File(binary)
+    if (actual !== asset.sha256) {
+      core.warning(
+        `Cached sfw-free does not match the pinned sha256 and was discarded.\nExpected: ${asset.sha256}\nGot:      ${actual}`,
+      )
+      await emptyDir(installDir)
+      return false
+    }
+    core.info(`Restored sfw-free from cache; sha256 verified: ${actual}`)
+    return true
+  } catch (error) {
+    core.warning(`Cache restore failed, downloading instead: ${error.message}`)
+    await emptyDir(installDir)
+    return false
+  }
+}
+
+/**
+ * Save the verified binary. A failure (for example another job saving the
+ * same key first) only costs the next job a download.
+ */
+async function save(core, cache, installDir, cacheKey) {
+  try {
+    await cache.saveCache([installDir], cacheKey)
+    core.info(`Saved sfw-free to cache as ${cacheKey}`)
+  } catch (error) {
+    core.warning(`Cache save failed: ${error.message}`)
+  }
+}
+
+async function download(core, fetch, delays, version, asset, binary) {
   const partial = `${binary}.download`
-  core.info(`Downloading sfw-free ${release.version} (${asset.name})`)
-  const actual = await downloadFile(url, partial, {
+  core.info(`Downloading sfw-free ${version} (${asset.name})`)
+  const actual = await downloadFile(assetUrl(version, asset.name), partial, {
     fetch,
     delays,
     warn: core.warning,
@@ -57,14 +138,12 @@ export async function run({
     )
   }
   core.info(`sha256 verified: ${actual}`)
-
   await rename(partial, binary)
-  await chmod(binary, 0o755)
-  core.addPath(installDir)
+}
 
-  core.setOutput('version', release.version)
-  core.setOutput('path', binary)
-  core.info(`sfw-free ${release.version} installed at ${binary}`)
+async function emptyDir(dir) {
+  await rm(dir, { recursive: true, force: true })
+  await mkdir(dir, { recursive: true })
 }
 
 function currentHost() {

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ASSET_NAMES } from '../src/platform.js'
@@ -31,12 +31,24 @@ export function fakeFetch(...responses) {
   return { fetch, calls }
 }
 
-/** Records what the action tells @actions/core. */
+/**
+ * Records what the action tells @actions/core. Inputs default to the
+ * action.yml defaults.
+ */
 export function fakeCore(inputs = {}) {
   const calls = { outputs: {}, paths: [], info: [], warning: [] }
+  const values = { cache: 'true', ...inputs }
+  const getInput = (name) => values[name] ?? ''
   return {
     calls,
-    getInput: (name) => inputs[name] ?? '',
+    getInput,
+    // Same rules as @actions/core: YAML 1.2 core schema booleans only.
+    getBooleanInput: (name) => {
+      const value = getInput(name)
+      if (['true', 'True', 'TRUE'].includes(value)) return true
+      if (['false', 'False', 'FALSE'].includes(value)) return false
+      throw new TypeError(`Input does not meet YAML 1.2 "Core Schema"`)
+    },
     setOutput: (name, value) => {
       calls.outputs[name] = value
     },
@@ -44,6 +56,33 @@ export function fakeCore(inputs = {}) {
     info: (message) => calls.info.push(message),
     warning: (message) => calls.warning.push(message),
     debug: () => {},
+  }
+}
+
+/**
+ * In-memory @actions/cache. `entries` maps a key to the files restored into
+ * the first path. restoreCache matches by prefix, like the real one.
+ */
+export function fakeCache({ available = true, entries = {}, fail } = {}) {
+  const calls = { restored: [], saved: [] }
+  return {
+    calls,
+    isFeatureAvailable: () => available,
+    restoreCache: async ([dir], key) => {
+      calls.restored.push(key)
+      if (fail === 'restore') throw new Error('cache service down')
+      const matched = Object.keys(entries).find((k) => k.startsWith(key))
+      if (matched === undefined) return undefined
+      for (const [name, content] of Object.entries(entries[matched])) {
+        await writeFile(join(dir, name), content)
+      }
+      return matched
+    },
+    saveCache: async ([dir], key) => {
+      if (fail === 'save') throw new Error('reserved by another job')
+      calls.saved.push({ key, files: await readdir(dir) })
+      return 1
+    },
   }
 }
 

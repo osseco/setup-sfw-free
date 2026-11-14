@@ -6,11 +6,22 @@ branding:
   icon: shield
   color: green
 
+inputs:
+  cache:
+    description: >-
+      Keep the sfw binary in this repository's Actions cache, so later jobs
+      don't download it from GitHub releases. A restored binary is verified
+      against the pinned sha256 before use. true or false.
+    required: false
+    default: 'true'
+
 outputs:
   version:
     description: Installed sfw-free version, for example 1.15.6
   path:
     description: Absolute path to the sfw binary
+  cache-hit:
+    description: true when the binary came from the Actions cache, otherwise false
 
 runs:
   using: node24
