@@ -1,0 +1,72 @@
+# Contributing
+
+Conventions for commits, branches and sfw are in [AGENTS.md](AGENTS.md). This page covers setup, CI, versions, releases and sfw-free updates.
+
+## Setup
+
+- Node from `.node-version`, [pnpm](https://pnpm.io/) (the version in `packageManager` is used automatically), [Socket Firewall Free](https://docs.socket.dev/docs/socket-firewall-free) (`sfw`), `zizmor`, `actionlint` and [pre-commit](https://pre-commit.com/).
+- `sfw pnpm install --frozen-lockfile`
+- `pre-commit install`
+
+`pnpm-workspace.yaml` refuses package versions younger than 7 days and denies dependency build scripts.
+
+| Command              | Does                                           |
+| -------------------- | ---------------------------------------------- |
+| `pnpm format`        | formats with Biome                             |
+| `pnpm lint`          | lints with Biome                               |
+| `pnpm test`          | runs the unit tests (`node --test`)            |
+| `pnpm test:coverage` | the tests with the coverage thresholds CI uses |
+| `sfw pnpm build`     | bundles `src/` into `dist/` with esbuild       |
+
+## CI
+
+| Workflow                                     | When                                 | What                                                                                                                   |
+| -------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `pr.yml`                                     | every pull request                   | calculates the next version, runs `check.yml`, then `Merge gate`                                                       |
+| `check.yml`                                  | called by `pr.yml` and `release.yml` | tests, `dist/` check, dependency review, CodeQL, zizmor, actionlint, and the action itself on every supported platform |
+| `release.yml`                                | push to `main` touching the action   | the same checks, then publishes the release                                                                            |
+| `sfw-free-update.yml`                        | weekly                               | opens an issue when a new sfw-free release is at least 7 days old                                                      |
+| `codeql.yml`, `zizmor.yml`, `actionlint.yml` | also weekly                          | report findings to code scanning                                                                                       |
+
+## Versions
+
+Tags look like `v1.16.0-0.1.0`:
+
+- `1.16.0` is the sfw-free version the action installs, read from `sfw-free.json`.
+- `0.1.0` is the action's own version. It never resets, and it comes from the latest tag and the [Conventional Commits](https://www.conventionalcommits.org/) since then (`.github/calculate-version.sh`). Without a tag it starts at `0.0.0`.
+  - `feat!:` or a `BREAKING CHANGE:` footer bumps major.
+  - `feat:` bumps minor; an sfw-free update is a `feat`.
+  - Anything else bumps patch.
+  - Each release bumps once, by the highest-ranking commit.
+
+The separator is `-`, not `+`: Dependabot can't parse `+`, so users pinned to a SHA would never get update PRs. Tools show these versions as prereleases; every tag is one, so they still sort correctly.
+
+## Releases
+
+A push to `main` that changes the action runs `release.yml`. When the version changed, the `publish` job (environment `release`):
+
+1. Writes `SHA256SUMS` for `action.yml`, `sfw-free.json` and `dist/*`.
+2. Attests build provenance for them.
+3. Creates a draft GitHub Release for the commit with those files, then publishes it. Releases are immutable, so a broken release is fixed by the next version.
+
+## Updating sfw-free
+
+`sfw-free-update.yml` opens an issue `Update sfw-free to vX.Y.Z` when a release is at least 7 days old. A maintainer then:
+
+1. Reads the sfw-free release notes.
+2. Runs `node scripts/update-sfw-free.mjs X.Y.Z`. It refuses releases younger than 7 days, downloads every asset, and requires the local sha256 to equal the digest GitHub reports before it writes `sfw-free.json`.
+3. Runs `sfw pnpm build` and `pre-commit run --all-files`.
+4. Commits `feat(sfw): update sfw-free to X.Y.Z` and opens a pull request. The e2e jobs install and run the new binary on every platform.
+5. Merges, approves the release, and closes the issue.
+
+## Verifying a release
+
+```bash
+gh attestation verify dist/main.cjs --repo osseco/setup-sfw-free
+```
+
+```bash
+sha256sum --check SHA256SUMS
+```
+
+Renaming `release.yml` or releasing from another branch changes the signing identity.

@@ -1,0 +1,10 @@
+# Versions must be 7 days old before pnpm installs them, direct and transitive
+# alike. Same rule as Dependabot's cooldown and sfw-free updates.
+minimumReleaseAge: 10080
+
+# Dependency build scripts are denied unless listed here with true.
+strictDepBuilds: true
+allowBuilds:
+  # The postinstall only validates the binary; esbuild finds it in the
+  # @esbuild/<platform> optional dependency without it.
+  esbuild: false

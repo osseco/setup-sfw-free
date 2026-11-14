@@ -1,0 +1,45 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^dist/
+      - id: end-of-file-fixer
+        exclude: ^dist/
+      - id: check-json
+      - id: check-yaml
+      - id: check-merge-conflict
+
+  # Tools are expected on PATH (see AGENTS.md).
+  - repo: local
+    hooks:
+      - id: biome
+        name: biome format and lint
+        entry: pnpm exec biome check --no-errors-on-unmatched
+        language: system
+        types_or: [javascript, json, markdown]
+        exclude: ^dist/
+      - id: pnpm-test
+        name: pnpm test
+        entry: pnpm test
+        language: system
+        files: ^(src|test|scripts|\.github/scripts)/.*\.m?js$|^sfw-free\.json$
+        pass_filenames: false
+      - id: dist-up-to-date
+        name: dist matches a fresh build
+        entry: bash -c 'pnpm build >/dev/null && git diff --exit-code -- dist/'
+        language: system
+        files: ^(src/|dist/|scripts/build\.mjs$|sfw-free\.json$|package\.json$|pnpm-lock\.yaml$)
+        pass_filenames: false
+      - id: zizmor
+        name: zizmor
+        entry: zizmor --offline .github/workflows action.yml
+        language: system
+        files: ^(\.github/workflows/|action\.yml$)
+        pass_filenames: false
+      - id: actionlint
+        name: actionlint
+        entry: actionlint
+        language: system
+        files: ^\.github/workflows/
+        pass_filenames: false
