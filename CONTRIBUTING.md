@@ -26,7 +26,7 @@ Conventions for commits, branches and sfw are in [AGENTS.md](AGENTS.md). This pa
 | `pr.yml`                                     | every pull request                   | calculates the next version, runs `check.yml`, then `Merge gate`                                                       |
 | `check.yml`                                  | called by `pr.yml` and `release.yml` | tests, `dist/` check, dependency review, CodeQL, zizmor, actionlint, and the action itself on every supported platform |
 | `release.yml`                                | push to `main` touching the action   | the same checks, then publishes the release                                                                            |
-| `sfw-free-update.yml`                        | weekly                               | opens an issue when a new sfw-free release is at least 7 days old                                                      |
+| `sfw-free-update.yml`                        | weekly                               | opens a pull request when a new sfw-free release is at least 7 days old                                                |
 | `codeql.yml`, `zizmor.yml`, `actionlint.yml` | also weekly                          | report findings to code scanning                                                                                       |
 
 ## Versions
@@ -52,26 +52,39 @@ A push to `main` that changes the action runs `release.yml`. When the version ch
 
 ## Updating sfw-free
 
-`sfw-free-update.yml` opens an issue `Update sfw-free to vX.Y.Z` when a release is at least 7 days old. A maintainer then:
+Every Monday, `sfw-free-update.yml` looks for a release at least 7 days old. When it finds one and no pull request for it is open, it:
 
-1. Reads the sfw-free release notes.
-2. From a clean checkout, runs:
+1. runs `pnpm update-sfw-free X.Y.Z` (below), which stages the update on `feat/update_sfw_free_X.Y.Z`;
+2. creates that branch on GitHub and commits the staged files with GraphQL `createCommitOnBranch`, so GitHub signs the commit;
+3. opens the pull request `feat(sfw): update sfw-free to X.Y.Z` with a GitHub App token, so `pr.yml` runs on it.
 
-   ```bash
-   pnpm update-sfw-free X.Y.Z
-   ```
+A maintainer then reads the sfw-free release notes, checks the sha256 values, waits for the e2e jobs (they install and run the new binary on every platform), squash-merges with the pull request title, and approves the release.
 
-   The script:
-   - refuses releases younger than 7 days, drafts, prereleases, and versions `origin/main` already has;
-   - creates `feat/update_sfw_free_X.Y.Z` from `origin/main`;
-   - downloads every asset and requires the local sha256 to equal the digest GitHub reports;
-   - writes `sfw-free.json` and the version marker in `README.md`;
-   - runs `sfw pnpm install --frozen-lockfile`, `pnpm build` and `pnpm test`;
-   - stages `sfw-free.json`, `README.md` and `dist/`. It never commits or pushes.
+### GitHub App
 
-   `pnpm update-sfw-free X.Y.Z --dry-run` only checks and downloads: no git, no writes.
-3. Reviews the staged changes, commits them signed as `feat(sfw): update sfw-free to X.Y.Z`, pushes, and opens a pull request. The e2e jobs install and run the new binary on every platform.
-4. Merges, approves the release, and closes the issue.
+The workflow needs a GitHub App installed on this repository only, with **Contents: write** and **Pull requests: write**, and:
+
+- the variable `SFW_UPDATE_APP_CLIENT_ID`: the App's client ID;
+- the secret `SFW_UPDATE_APP_PRIVATE_KEY`: a private key of the App.
+
+### By hand
+
+The same update, from a clean checkout:
+
+```bash
+pnpm update-sfw-free X.Y.Z
+```
+
+The script:
+
+- refuses releases younger than 7 days, drafts, prereleases, and versions `origin/main` already has;
+- creates `feat/update_sfw_free_X.Y.Z` from `origin/main`;
+- downloads every asset and requires the local sha256 to equal the digest GitHub reports;
+- writes `sfw-free.json` and the version marker in `README.md`;
+- runs `sfw pnpm install --frozen-lockfile`, `pnpm build` and `pnpm test`;
+- stages `sfw-free.json`, `README.md` and `dist/`. It never commits or pushes.
+
+`pnpm update-sfw-free X.Y.Z --dry-run` only checks and downloads: no git, no writes. After a run by hand, review the staged changes, commit them signed as `feat(sfw): update sfw-free to X.Y.Z`, push, and open a pull request.
 
 `README.md` holds the sfw-free version between `<!-- sfw-free-version -->` markers; a test fails when it differs from `sfw-free.json`. The exact `uses:` line (commit SHA and tag) is written into each release's notes by `release.yml`.
 

@@ -4,7 +4,7 @@ How AI agents work in this repository. What the action does, and how to use it: 
 
 ## Commits
 
-Agents never commit. The maintainer reviews and signs every commit.
+Agents never commit. The maintainer reviews and signs every commit. The one exception is `sfw-free-update.yml`: it commits sfw-free updates through the GitHub API (signed by GitHub) to a pull request the maintainer reviews before merging.
 
 - Never run `git commit`, `git tag`, `git push`, or anything that rewrites history (`rebase`, `reset --hard`, `commit --amend`, force pushes).
 - Work in reviewable chunks. At the end of each chunk, stage exactly that chunk's files with explicit paths (`git add <path>…`, never `git add -A` or `git add .`), show `git diff --cached --stat`, and propose a commit message. Staged means "commit this". Then wait until the maintainer has committed before starting the next chunk. On requested changes, edit and re-stage.
@@ -65,7 +65,8 @@ Tests use `node --test`, live in `test/`, and must not touch the network. Logic 
 - `src/download.js`: download with retries, sha256.
 - `src/summary.js`: report to HTML, every value escaped.
 - `scripts/build.mjs`: esbuild bundle into `dist/` (CJS, no sourcemaps).
-- `scripts/update-sfw-free.mjs` (`pnpm update-sfw-free X.Y.Z`): maintainer tool that adopts a release on a new branch and stages the result. Agents may run it only when asked, and never commit what it stages.
+- `scripts/update-sfw-free.mjs` (`pnpm update-sfw-free X.Y.Z`): adopts a release on a new branch and stages the result. Agents may run it only when asked, and never commit what it stages.
+- `.github/scripts/check-sfw-free.mjs`, `.github/scripts/open-update-pr.mjs`: used by `sfw-free-update.yml` to find a release old enough to adopt and to turn the staged update into a pull request.
 
 ## Security rules
 
