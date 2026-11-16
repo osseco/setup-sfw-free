@@ -2,7 +2,7 @@
 
 A GitHub Action that installs [Socket Firewall Free](https://github.com/SocketDev/sfw-free) (`sfw`) and nothing else. Run your package manager through it (`sfw npm ci`, `sfw pnpm install`, `sfw pip install`, `sfw cargo fetch`) and it blocks malicious packages before they reach the runner.
 
-This version of the action installs sfw-free <!-- sfw-free-version -->1.15.6<!-- /sfw-free-version -->.
+This version of the action installs sfw-free <!-- sfw-free-version -->1.16.0<!-- /sfw-free-version -->.
 
 - Each action version installs exactly one sfw-free version. Its sha256 for every platform is pinned in [`sfw-free.json`](sfw-free.json), and the binary is checked against it before it is used.
 - Downloads come only from the sfw-free GitHub releases.

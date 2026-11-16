@@ -67097,40 +67097,40 @@ function saveCacheV2(paths_1, key_1, options_1) {
 
 // sfw-free.json
 var sfw_free_default = {
-  version: "1.15.6",
-  publishedAt: "2026-10-23T09:33:43Z",
+  version: "1.16.0",
+  publishedAt: "2026-11-01T14:28:39Z",
   assets: {
     "darwin-arm64": {
       name: "sfw-free-macos-arm64",
-      sha256: "3d19f542409e4c0bd6181b5761d617e83c1ed506263c2e083e9e344e2fbdde21"
+      sha256: "29df049df2ef705a8ce726c6c41fe73a6034f6b1cd0d87f3f15a780d074b6d83"
     },
     "darwin-x64": {
       name: "sfw-free-macos-x86_64",
-      sha256: "7b113f8c5836a20bb1ba4fd5f3c7edcac94c2a1fa8de6f1d53e728eb695af5c7"
+      sha256: "b574931bc2b3c36a9bf07ac07b9c07894f8cd314efc91bc5e4fe1c371b56adca"
     },
     "linux-arm64": {
       name: "sfw-free-linux-arm64",
-      sha256: "b4fb7e8626e3292a3c5daa2cfef3c1572997849279a6e6de090166dcc640eeba"
+      sha256: "474cdb684e42d33d4b697dedd7d90c159d71380be0e53c496f0e7097c3617a6c"
     },
     "linux-arm64-musl": {
       name: "sfw-free-musl-linux-arm64",
-      sha256: "1be630452cfa50067593252581723728d288f4758c1a89bcf145e99c0205e78d"
+      sha256: "97c9e9cb110097efd1d5b8d157f7160286cb7bda3242959eedf9e6a750269bb9"
     },
     "linux-x64": {
       name: "sfw-free-linux-x86_64",
-      sha256: "b958d503eeb793a45864a5f0feb79fba8ccd78e4f57d1f9404f0de653396f1e2"
+      sha256: "1f24d2628aeb3995f1f2651509e37641c7c41d07749ac68594ecb5bb2dd44d8a"
     },
     "linux-x64-musl": {
       name: "sfw-free-musl-linux-x86_64",
-      sha256: "53ce0f90be2592239d2e5b135487324364805debee9d6120484756a2fc4d234b"
+      sha256: "9936508a9d4889649abc12b51571c160bce919456aa2979e9054d74dae4365f1"
     },
     "win32-arm64": {
       name: "sfw-free-windows-arm64.exe",
-      sha256: "75824fdd5a6b53c668be4089efd7111555406b7a96f6727802b4c3990abe4aa7"
+      sha256: "1f30de261e48a92d94d28316a8b94111dba88decdd266a74d7dd93e54c2dba51"
     },
     "win32-x64": {
       name: "sfw-free-windows-x86_64.exe",
-      sha256: "6eb6e989df3b8c4b66b3026bd7525e481fa9090063a51026632f99fc55f3e62d"
+      sha256: "fafcb65a0349ff21af4feeda170f669053efa68acb55e1b935f7ed1b2ac93ca7"
     }
   }
 };
