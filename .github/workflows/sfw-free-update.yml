@@ -1,8 +1,13 @@
 name: sfw-free update
 
-# Opens an issue when a newer sfw-free release is at least 7 days old. It never
-# changes code or opens pull requests: a maintainer adopts the release (see
+# Opens a pull request when a newer sfw-free release is at least 7 days old.
+# It runs `pnpm update-sfw-free X.Y.Z` (which checks every downloaded asset
+# against GitHub's digest) and commits the result through the GitHub API, so
+# the commit is signed by GitHub. A maintainer reviews and merges (see
 # CONTRIBUTING.md, "Updating sfw-free").
+#
+# A GitHub App token opens the pull request so that pr.yml runs on it; pull
+# requests opened with GITHUB_TOKEN start no workflows.
 
 on:
   schedule:
@@ -16,15 +21,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  check:
+  update:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
@@ -33,18 +38,48 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node .github/scripts/check-sfw-free.mjs
-      - name: Open an issue unless one is open
+      - name: Create a GitHub App token
+        id: app-token
+        if: steps.check.outputs.version != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.SFW_UPDATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SFW_UPDATE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Skip if a pull request is open
+        id: open
         if: steps.check.outputs.version != ''
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           GH_REPO: ${{ github.repository }}
-          TITLE: ${{ steps.check.outputs.title }}
-          BODY_FILE: ${{ steps.check.outputs.body-file }}
+          VERSION: ${{ steps.check.outputs.version }}
         run: |
           set -euo pipefail
-          existing="$(gh issue list --state open --search "\"$TITLE\" in:title" --json title --jq "map(select(.title == env.TITLE)) | length")"
-          if [ "$existing" != "0" ]; then
-            echo "An open issue already tracks: $TITLE"
-            exit 0
+          branch="feat/update_sfw_free_${VERSION}"
+          count="$(gh pr list --state open --head "$branch" --json number --jq length)"
+          if [ "$count" != "0" ]; then
+            echo "A pull request is already open for $branch"
           fi
-          gh issue create --title "$TITLE" --body-file "$BODY_FILE"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+      # This commit's own action provides sfw. No cache: dist/ is released.
+      - if: steps.open.outputs.count == '0'
+        uses: $/
+        with:
+          cache: false
+          job-summary: errors
+      - if: steps.open.outputs.count == '0'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - name: Stage the update
+        if: steps.open.outputs.count == '0'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.check.outputs.version }}
+        run: node scripts/update-sfw-free.mjs "$VERSION"
+      - name: Open a pull request
+        if: steps.open.outputs.count == '0'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ steps.check.outputs.version }}
+          BODY_FILE: ${{ steps.check.outputs.body-file }}
+        run: node .github/scripts/open-update-pr.mjs

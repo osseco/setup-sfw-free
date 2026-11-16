@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   compareVersions,
-  issueBody,
   newestEligible,
+  prBody,
 } from '../.github/scripts/check-sfw-free.mjs'
 
 const release = (tag, publishedAt, extra = {}) => ({
@@ -81,15 +81,14 @@ test('skips drafts, prereleases and odd tags', () => {
   assert.equal(newestEligible(odd, '1.16.0', now), undefined)
 })
 
-test('the issue lists the update steps', () => {
-  const body = issueBody(
+test('the pull request lists the review steps', () => {
+  const body = prBody(
     { ...releases[0], version: '1.16.0' },
     '1.15.6',
     new Date('2026-11-14T14:28:39Z'),
   )
   assert.match(body, /13 days ago/)
   assert.match(body, /pnpm update-sfw-free 1\.16\.0/)
-  assert.match(body, /feat\/update_sfw_free_1\.16\.0/)
   assert.match(body, /feat\(sfw\): update sfw-free to 1\.16\.0/)
   assert.match(body, /pins v1\.15\.6/)
 })

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Weekly check for a newer sfw-free release. Prints nothing and writes no
-// outputs when the pinned version is current. Otherwise writes `version`,
-// `title` and `body-file` to $GITHUB_OUTPUT for the workflow to open an issue.
+// outputs when the pinned version is current. Otherwise writes `version` and
+// `body-file` to $GITHUB_OUTPUT for the workflow to open a pull request.
 // A release only counts once it is MIN_AGE_DAYS old.
 //
 //   node .github/scripts/check-sfw-free.mjs [--now 2026-11-14T00:00:00Z]
@@ -41,17 +41,19 @@ export function newestEligible(releases, current, now) {
     .sort((a, b) => compareVersions(b.version, a.version))[0]
 }
 
-/** Issue text for a release the maintainer should adopt. */
-export function issueBody(release, current, now) {
+/** Pull request text for a release the maintainer should adopt. */
+export function prBody(release, current, now) {
   const ageDays = Math.floor(
     (now - new Date(release.published_at)) / 86_400_000,
   )
   return `sfw-free [v${release.version}](${release.html_url}) was published ${release.published_at} (${ageDays} days ago). This action pins v${current}.
 
+\`pnpm update-sfw-free ${release.version}\` wrote \`sfw-free.json\`, the README version and \`dist/\`. Every asset's downloaded sha256 matched the digest GitHub reports.
+
 - [ ] Read the [release notes](${release.html_url}).
-- [ ] From a clean checkout: \`pnpm update-sfw-free ${release.version}\`. It creates \`feat/update_sfw_free_${release.version}\` and stages the changes.
-- [ ] Review the staged changes, commit them signed as \`feat(sfw): update sfw-free to ${release.version}\`, push, and open a pull request; the e2e jobs must pass on every platform.
-- [ ] Merge, approve the \`release\` environment, and close this issue.
+- [ ] Check the sha256 values in \`sfw-free.json\`.
+- [ ] The e2e jobs pass on every platform.
+- [ ] Squash-merge with the title \`feat(sfw): update sfw-free to ${release.version}\`, then approve the \`release\` environment.
 
 Opened by the weekly \`sfw-free-update\` workflow. See CONTRIBUTING.md, "Updating sfw-free".
 `
@@ -81,17 +83,13 @@ async function main() {
     return
   }
 
-  const title = `Update sfw-free to v${release.version}`
-  console.log(title)
+  console.log(`sfw-free ${release.version} is ready to adopt`)
   if (process.env.GITHUB_OUTPUT) {
-    const bodyFile = join(
-      process.env.RUNNER_TEMP ?? tmpdir(),
-      'sfw-free-issue.md',
-    )
-    await writeFile(bodyFile, issueBody(release, pinned.version, now))
+    const bodyFile = join(process.env.RUNNER_TEMP ?? tmpdir(), 'sfw-free-pr.md')
+    await writeFile(bodyFile, prBody(release, pinned.version, now))
     await appendFile(
       process.env.GITHUB_OUTPUT,
-      `version=${release.version}\ntitle=${title}\nbody-file=${bodyFile}\n`,
+      `version=${release.version}\nbody-file=${bodyFile}\n`,
     )
   }
 }
