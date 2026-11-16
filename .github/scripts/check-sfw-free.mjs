@@ -48,7 +48,7 @@ export function prBody(release, current, now) {
   )
   return `sfw-free [v${release.version}](${release.html_url}) was published ${release.published_at} (${ageDays} days ago). This action pins v${current}.
 
-\`pnpm update-sfw-free ${release.version}\` wrote \`sfw-free.json\`, the README version and \`dist/\`. Every asset's downloaded sha256 matched the digest GitHub reports.
+The workflow wrote \`sfw-free.json\`, the README version and \`dist/\`. Every asset passed \`gh release verify-asset v${release.version}\`: its sha256 is in the release attestation GitHub signed.
 
 - [ ] Read the [release notes](${release.html_url}).
 - [ ] Check the sha256 values in \`sfw-free.json\`.

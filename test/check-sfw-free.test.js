@@ -88,7 +88,7 @@ test('the pull request lists the review steps', () => {
     new Date('2026-11-14T14:28:39Z'),
   )
   assert.match(body, /13 days ago/)
-  assert.match(body, /pnpm update-sfw-free 1\.16\.0/)
+  assert.match(body, /gh release verify-asset v1\.16\.0/)
   assert.match(body, /feat\(sfw\): update sfw-free to 1\.16\.0/)
   assert.match(body, /pins v1\.15\.6/)
 })

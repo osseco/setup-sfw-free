@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Turn what `pnpm update-sfw-free X.Y.Z` staged into a pull request. Run by
+// Turn the staged sfw-free update into a pull request. Run by
 // the sfw-free-update workflow with a GitHub App token:
 //
 //   GH_TOKEN=… GITHUB_REPOSITORY=owner/repo VERSION=X.Y.Z BODY_FILE=… \
@@ -14,11 +14,7 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  branchName,
-  CHANGED_PATHS,
-  makeExec,
-} from '../../scripts/update-sfw-free.mjs'
+import { branchName, CHANGED_PATHS, makeExec } from './pin-sfw-free.mjs'
 
 const API = 'https://api.github.com'
 const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url))
@@ -39,11 +35,13 @@ const isChangedPath = (path) =>
  * @returns {Promise<{ additions: { path: string, contents: string }[], deletions: { path: string }[] }>}
  */
 export async function fileChanges(exec, root) {
-  const { stdout } = await exec(
-    'git',
-    ['diff', '--cached', '--name-status', '--no-renames', '-z'],
-    { capture: true },
-  )
+  const { stdout } = await exec('git', [
+    'diff',
+    '--cached',
+    '--name-status',
+    '--no-renames',
+    '-z',
+  ])
   const fields = stdout.split('\0').filter((f) => f !== '')
   const additions = []
   const deletions = []
@@ -103,9 +101,7 @@ export async function openUpdatePr({
   }
   const branch = branchName(version)
   const changes = await fileChanges(exec, root)
-  const head = (
-    await exec('git', ['rev-parse', 'HEAD'], { capture: true })
-  ).stdout.trim()
+  const head = (await exec('git', ['rev-parse', 'HEAD'])).stdout.trim()
 
   const call = async (method, path, payload) => {
     const response = await fetch(`${API}${path}`, {

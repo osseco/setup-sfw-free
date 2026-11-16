@@ -37,12 +37,12 @@ Needed before the workflows work as intended:
 
 ## Dry run of the update process (to sfw-free 1.16.0)
 
-- [ ] Run `sfw-free update` from the Actions tab; it opens `Update sfw-free to v1.16.0`.
-- [ ] Run it again; no second issue is opened.
-- [ ] Follow the issue: `pnpm update-sfw-free 1.16.0` creates `feat/update_sfw_free_1.16.0` and stages `sfw-free.json`, `README.md` and `dist/`; review, commit signed as `feat(sfw): update sfw-free to 1.16.0`, push, open a pull request, e2e jobs green.
-- [ ] Merge; confirm release `v1.16.0-0.2.0`; close the issue.
+- [ ] Set up the GitHub App (CONTRIBUTING.md, "GitHub App").
+- [ ] Run `sfw-free update` from the Actions tab; the log shows 8 assets verified against the release attestation, and it opens `feat(sfw): update sfw-free to 1.16.0` with a Verified commit.
+- [ ] Run it again; no second pull request is opened.
+- [ ] Check the sha256 values against the release, e2e jobs green.
+- [ ] Squash-merge; confirm release `v1.16.0-0.2.0`.
 
 ## Follow-ups to check
 
 - [ ] Dependabot opens pull requests against `pnpm-lock.yaml` (pnpm 12 lockfile) after its first weekly run.
-- [ ] Whether sfw-free starts publishing signatures or attestations; if so, verify them in `scripts/update-sfw-free.mjs`.
