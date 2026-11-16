@@ -23,7 +23,6 @@
     "format:check": "biome format",
     "lint": "biome lint",
     "test": "node --test",
-    "update-sfw-free": "node scripts/update-sfw-free.mjs",
     "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=src/** --test-coverage-lines=90 --test-coverage-branches=80"
   },
   "dependencies": {

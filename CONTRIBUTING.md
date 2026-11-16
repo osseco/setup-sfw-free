@@ -10,14 +10,13 @@ Conventions for commits, branches and sfw are in [AGENTS.md](AGENTS.md). This pa
 
 `pnpm-workspace.yaml` refuses package versions younger than 7 days and denies dependency build scripts.
 
-| Command                      | Does                                                                                 |
-| ---------------------------- | ------------------------------------------------------------------------------------ |
-| `pnpm format`                | formats with Biome                                                                   |
-| `pnpm lint`                  | lints with Biome                                                                     |
-| `pnpm test`                  | runs the unit tests (`node --test`)                                                  |
-| `pnpm test:coverage`         | the tests with the coverage thresholds CI uses                                       |
-| `pnpm update-sfw-free X.Y.Z` | adopts a new sfw-free release on a new branch (see below)                            |
-| `sfw pnpm build`             | bundles `src/` into `dist/` with esbuild, and writes `dist/THIRD-PARTY-LICENSES.txt` |
+| Command              | Does                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| `pnpm format`        | formats with Biome                                                                   |
+| `pnpm lint`          | lints with Biome                                                                     |
+| `pnpm test`          | runs the unit tests (`node --test`)                                                  |
+| `pnpm test:coverage` | the tests with the coverage thresholds CI uses                                       |
+| `sfw pnpm build`     | bundles `src/` into `dist/` with esbuild, and writes `dist/THIRD-PARTY-LICENSES.txt` |
 
 ## CI
 
@@ -54,9 +53,11 @@ A push to `main` that changes the action runs `release.yml`. When the version ch
 
 Every Monday, `sfw-free-update.yml` looks for a release at least 7 days old. When it finds one and no pull request for it is open, it:
 
-1. runs `pnpm update-sfw-free X.Y.Z` (below), which stages the update on `feat/update_sfw_free_X.Y.Z`;
-2. creates that branch on GitHub and commits the staged files with GraphQL `createCommitOnBranch`, so GitHub signs the commit;
-3. opens the pull request `feat(sfw): update sfw-free to X.Y.Z` with a GitHub App token, so `pr.yml` runs on it.
+1. downloads the release with `gh release download`;
+2. runs `.github/scripts/pin-sfw-free.mjs`, which refuses drafts, prereleases, mutable releases and versions `main` already has, verifies every asset the action maps with `gh release verify-asset` (its sha256 must be in the release attestation GitHub signed), and writes `sfw-free.json` and the version marker in `README.md`;
+3. runs `sfw pnpm install --frozen-lockfile`, `pnpm build` and `pnpm test`, and stages `sfw-free.json`, `README.md` and `dist/`;
+4. creates `feat/update_sfw_free_X.Y.Z` on GitHub and commits the staged files with GraphQL `createCommitOnBranch`, so GitHub signs the commit;
+5. opens the pull request `feat(sfw): update sfw-free to X.Y.Z` with a GitHub App token, so `pr.yml` runs on it.
 
 A maintainer then reads the sfw-free release notes, checks the sha256 values, waits for the e2e jobs (they install and run the new binary on every platform), squash-merges with the pull request title, and approves the release.
 
@@ -67,24 +68,11 @@ The workflow needs a GitHub App installed on this repository only, with **Conten
 - the variable `SFW_UPDATE_APP_CLIENT_ID`: the App's client ID;
 - the secret `SFW_UPDATE_APP_PRIVATE_KEY`: a private key of the App.
 
-### By hand
-
-The same update, from a clean checkout:
+To check an asset yourself:
 
 ```bash
-pnpm update-sfw-free X.Y.Z
+gh release verify-asset vX.Y.Z sfw-free-linux-x86_64 --repo SocketDev/sfw-free
 ```
-
-The script:
-
-- refuses releases younger than 7 days, drafts, prereleases, and versions `origin/main` already has;
-- creates `feat/update_sfw_free_X.Y.Z` from `origin/main`;
-- downloads every asset and requires the local sha256 to equal the digest GitHub reports;
-- writes `sfw-free.json` and the version marker in `README.md`;
-- runs `sfw pnpm install --frozen-lockfile`, `pnpm build` and `pnpm test`;
-- stages `sfw-free.json`, `README.md` and `dist/`. It never commits or pushes.
-
-`pnpm update-sfw-free X.Y.Z --dry-run` only checks and downloads: no git, no writes. After a run by hand, review the staged changes, commit them signed as `feat(sfw): update sfw-free to X.Y.Z`, push, and open a pull request.
 
 `README.md` holds the sfw-free version between `<!-- sfw-free-version -->` markers; a test fails when it differs from `sfw-free.json`. The exact `uses:` line (commit SHA and tag) is written into each release's notes by `release.yml`.
 

@@ -1,10 +1,11 @@
 name: sfw-free update
 
 # Opens a pull request when a newer sfw-free release is at least 7 days old.
-# It runs `pnpm update-sfw-free X.Y.Z` (which checks every downloaded asset
-# against GitHub's digest) and commits the result through the GitHub API, so
-# the commit is signed by GitHub. A maintainer reviews and merges (see
-# CONTRIBUTING.md, "Updating sfw-free").
+# It downloads the release with gh, pins only assets that pass
+# `gh release verify-asset` (GitHub's signed release attestation), builds,
+# tests, and commits the result through the GitHub API, so the commit is
+# signed by GitHub. A maintainer reviews and merges (see CONTRIBUTING.md,
+# "Updating sfw-free").
 #
 # A GitHub App token opens the pull request so that pr.yml runs on it; pull
 # requests opened with GITHUB_TOKEN start no workflows.
@@ -22,6 +23,8 @@ concurrency:
 
 jobs:
   update:
+    # The pull request branch starts at the checked-out commit.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -29,7 +32,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
@@ -70,12 +72,28 @@ jobs:
           job-summary: errors
       - if: steps.open.outputs.count == '0'
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - name: Stage the update
+      - name: Download the release
         if: steps.open.outputs.count == '0'
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.check.outputs.version }}
-        run: node scripts/update-sfw-free.mjs "$VERSION"
+        run: gh release download "v$VERSION" --repo SocketDev/sfw-free --dir "$RUNNER_TEMP/sfw-free"
+      - name: Verify the release attestation and pin
+        if: steps.open.outputs.count == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.check.outputs.version }}
+        run: node .github/scripts/pin-sfw-free.mjs "$VERSION" "$RUNNER_TEMP/sfw-free"
+      - name: Build and test
+        if: steps.open.outputs.count == '0'
+        run: |
+          set -euo pipefail
+          sfw pnpm install --frozen-lockfile
+          pnpm build
+          pnpm test
+      - name: Stage the update
+        if: steps.open.outputs.count == '0'
+        run: git add -- sfw-free.json README.md dist/
       - name: Open a pull request
         if: steps.open.outputs.count == '0'
         env:

@@ -55,7 +55,7 @@ Tests use `node --test`, live in `test/`, and must not touch the network. Logic 
 ## Code map
 
 - `action.yml`: inputs, outputs, `dist/main.cjs` and `dist/post.cjs`.
-- `sfw-free.json`: the one sfw-free version this action installs, with the sha256 of every asset. Only `scripts/update-sfw-free.mjs` writes it, together with the version marker in `README.md`.
+- `sfw-free.json`: the one sfw-free version this action installs, with the sha256 of every asset. Only `.github/scripts/pin-sfw-free.mjs` writes it, in the update workflow, together with the version marker in `README.md`.
 - `src/index.js`, `src/post-index.js`: entry points; they only call `run()`.
 - `src/main.js`: `run()` resolves the asset, restores from cache or downloads, verifies, puts `sfw` on PATH.
 - `src/post.js`: `run()` writes the job summary from the sfw report.
@@ -65,12 +65,12 @@ Tests use `node --test`, live in `test/`, and must not touch the network. Logic 
 - `src/download.js`: download with retries, sha256.
 - `src/summary.js`: report to HTML, every value escaped.
 - `scripts/build.mjs`: esbuild bundle into `dist/` (CJS, no sourcemaps).
-- `scripts/update-sfw-free.mjs` (`pnpm update-sfw-free X.Y.Z`): adopts a release on a new branch and stages the result. Agents may run it only when asked, and never commit what it stages.
-- `.github/scripts/check-sfw-free.mjs`, `.github/scripts/open-update-pr.mjs`: used by `sfw-free-update.yml` to find a release old enough to adopt and to turn the staged update into a pull request.
+- `.github/scripts/check-sfw-free.mjs`, `.github/scripts/pin-sfw-free.mjs`, `.github/scripts/open-update-pr.mjs`: used by `sfw-free-update.yml` to find a release old enough to adopt, verify and pin it, and turn the staged update into a pull request.
 
 ## Security rules
 
 - Never install a binary that hasn't matched the sha256 in `sfw-free.json`. That includes binaries restored from the Actions cache.
+- Pin a new sfw-free sha256 only when `gh release verify-asset` finds it in the release attestation.
 - Download only from `https://github.com/SocketDev/sfw-free/releases/download/`. No mirrors, no other hosts.
 - Never take a checksum from the same place as the binary at run time.
 - No new runtime dependencies without the maintainer's agreement.

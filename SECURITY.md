@@ -15,7 +15,7 @@ Only the latest release gets fixes. Releases are immutable, so a fix always ship
 ## How the binary is trusted
 
 - `sfw-free.json` pins one sfw-free version and the sha256 of every asset the action can install.
-- A maintainer pins a release with `scripts/update-sfw-free.mjs`. It refuses drafts, prereleases and releases younger than 7 days, downloads every asset, and requires the sha256 it computes to equal the digest GitHub reports. Two independent sources must agree.
+- The update workflow pins a release with `.github/scripts/pin-sfw-free.mjs`. It refuses drafts, prereleases, mutable releases and releases younger than 7 days, and pins an asset's sha256 only when `gh release verify-asset` finds it in the release attestation GitHub signed for that immutable release.
 - At run time the action downloads only from `https://github.com/SocketDev/sfw-free/releases/download/`, over https, with no mirrors. A redirect to plain http is refused.
 - The download is hashed while it is written. Nothing is made executable or put on `PATH` until the hash matches the pinned one. On a mismatch the file is deleted and the step fails.
 - The Actions cache is treated as untrusted transport. Any workflow on the default branch can write entries, so a restored binary is hashed again and discarded on a mismatch. Only exact cache keys count: the key holds the full sha256, and a prefix match on another key is ignored.
@@ -23,8 +23,8 @@ Only the latest release gets fixes. Releases are immutable, so a fix always ship
 
 ## How sfw-free updates are adopted
 
-- A weekly workflow opens an issue when a newer sfw-free release is at least 7 days old. It has no write access to code and opens no pull requests.
-- A maintainer reads the release notes, runs the update script, and opens a pull request. The end-to-end jobs install and run the new binary on every supported platform before it can merge.
+- A weekly workflow opens a pull request when a newer sfw-free release is at least 7 days old. Its job token is read-only; a GitHub App token limited to this repository (contents and pull requests) creates the branch, the commit (through the API, signed by GitHub) and the pull request. It cannot merge.
+- A maintainer reads the release notes and reviews the pull request. The end-to-end jobs install and run the new binary on every supported platform before it can merge.
 
 ## Dependencies
 
